@@ -83,7 +83,7 @@
 
         const sheet = workbook.Sheets[sheetName];
         showMsg("Conversion de la feuille en JSON.", "info");
-        const jsonRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        const jsonRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" , range: 9 });
         showMsg("Feuille convertie en JSON avec succès.", "success");
 
         console.log("Données lues :", jsonRaw);
