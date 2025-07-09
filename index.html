@@ -41,15 +41,21 @@
   <div class="container">
     <h1>Rechercher par Lot et Jalon</h1>
     <div class="row g-3">
-      <div class="col-md-6">
+      <div class="col-md-4">
         <label for="lotInput" class="form-label">Lot</label>
         <input type="text" class="form-control" id="lotInput" placeholder="Entrez le lot">
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <label for="jalonInput" class="form-label">Jalon</label>
         <input type="text" class="form-control" id="jalonInput" placeholder="Entrez le jalon">
       </div>
-      <div class="col-12">
+      <div class="col-md-3">
+        <label for="exeFilter" class="form-label">Filtrer par Exe</label>
+        <select class="form-select" id="exeFilter">
+          <option value="">Tous</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="filterVA">
           <label class="form-check-label" for="filterVA">
@@ -66,10 +72,13 @@
   </div>
 
   <script>
+    let allData = [];
+
     document.getElementById('searchButton').addEventListener('click', function() {
       const lot = document.getElementById('lotInput').value;
       const jalon = document.getElementById('jalonInput').value;
       const filterVA = document.getElementById('filterVA').checked;
+      const exeFilter = document.getElementById('exeFilter').value;
 
       const loadingMsg = document.getElementById('loadingMsg');
       loadingMsg.textContent = "Chargement en cours...";
@@ -77,20 +86,9 @@
       fetch('details_jalons.json')
         .then(response => response.json())
         .then(data => {
-          let results = data;
-
-          if (lot) {
-            results = results.filter(item => item.Ident == lot);
-          }
-
-          if (jalon) {
-            results = results.filter(item => item.Jalon == jalon);
-          }
-
-          if (filterVA) {
-            results = results.filter(item => item['v%A'] < 100);
-          }
-
+          allData = data;
+          populateExeFilter(data);
+          let results = filterData(data, lot, jalon, filterVA, exeFilter);
           displayResults(results);
           loadingMsg.textContent = "";
         })
@@ -100,6 +98,40 @@
         });
     });
 
+    function populateExeFilter(data) {
+      const exeFilter = document.getElementById('exeFilter');
+      const uniqueExeValues = [...new Set(data.map(item => item.Exe))].filter(Boolean);
+      exeFilter.innerHTML = '<option value="">Tous</option>';
+      uniqueExeValues.forEach(value => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        exeFilter.appendChild(option);
+      });
+    }
+
+    function filterData(data, lot, jalon, filterVA, exeFilter) {
+      let results = data;
+
+      if (lot) {
+        results = results.filter(item => item.Ident == lot);
+      }
+
+      if (jalon) {
+        results = results.filter(item => item.Jalon == jalon);
+      }
+
+      if (filterVA) {
+        results = results.filter(item => item['v%A'] < 100);
+      }
+
+      if (exeFilter) {
+        results = results.filter(item => item.Exe == exeFilter);
+      }
+
+      return results.sort((a, b) => a.Exe.localeCompare(b.Exe));
+    }
+
     function displayResults(results) {
       const resultsDiv = document.getElementById('results');
       if (results.length === 0) {
@@ -107,60 +139,6 @@
         return;
       }
 
-      let tableHTML = `
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Jalon</th>
-              <th>Lot</th>
-              <th>Budget</th>
-              <th>Exe</th>
-              <th>Libellé Activité</th>
-              <th>Réseau/OT</th>
-              <th>RRO</th>
-              <th>TR</th>
-              <th>v%A</th>
-              <th>Date FTard</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-
-      results.forEach(result => {
-        tableHTML += `
-          <tr>
-            <td>${result.Jalon !== undefined ? result.Jalon : ''}</td>
-            <td>${result.Ident !== undefined ? result.Ident : ''}</td>
-            <td>${result.Budget !== undefined ? result.Budget : ''}</td>
-            <td>${result.Exe !== undefined ? result.Exe : ''}</td>
-            <td>${result['Libellé Activité'] !== undefined ? result['Libellé Activité'] : ''}</td>
-            <td>${result['Réseau/OT'] !== undefined ? result['Réseau/OT'] : ''}</td>
-            <td>${result.RRO !== undefined ? result.RRO : ''}</td>
-            <td>${result.TR !== undefined ? result.TR : ''}</td>
-            <td>${result['v%A'] !== undefined ? result['v%A'] : ''}</td>
-            <td>${result['Date FTard'] !== undefined ? result['Date FTard'] : ''}</td>
-          </tr>
-        `;
-      });
-
-      tableHTML += `</tbody></table>`;
-      resultsDiv.innerHTML = tableHTML;
-
-      // Add click event to filter by "Exe"
-      document.querySelectorAll('th').forEach((header, index) => {
-        if (header.textContent === 'Exe') {
-          header.style.cursor = 'pointer';
-          header.addEventListener('click', () => {
-            const exeValues = [...new Set(results.map(item => item.Exe))];
-            const filteredResults = results.filter(item => item.Exe);
-            displayFilteredResults(filteredResults, 'Exe', exeValues);
-          });
-        }
-      });
-    }
-
-    function displayFilteredResults(results, filter, values) {
-      const resultsDiv = document.getElementById('results');
       let tableHTML = `
         <table class="table table-striped">
           <thead>
