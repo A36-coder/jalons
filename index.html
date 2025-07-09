@@ -55,14 +55,6 @@
   </div>
 
   <script>
-    function excelDateToJSDate(serial) {
-      if (!serial) return ''; // Handle empty or undefined date
-      const utcDays = Math.floor(serial - 25569);
-      const utcValue = utcDays * 86400;
-      const date = new Date(utcValue * 1000);
-      return date.toLocaleDateString("fr-FR"); // Format the date as DD/MM/YYYY
-    }
-
     document.getElementById('searchButton').addEventListener('click', function() {
       const ident = document.getElementById('identInput').value;
       const jalon = document.getElementById('jalonInput').value;
@@ -121,7 +113,6 @@
       `;
 
       results.forEach(result => {
-        const formattedDate = excelDateToJSDate(result['Date FTard']);
         tableHTML += `
           <tr>
             <td>${result.Jalon !== undefined ? result.Jalon : ''}</td>
@@ -133,7 +124,7 @@
             <td>${result.RRO !== undefined ? result.RRO : ''}</td>
             <td>${result.TR !== undefined ? result.TR : ''}</td>
             <td>${result['v%A'] !== undefined ? result['v%A'] : ''}</td>
-            <td>${formattedDate}</td>
+            <td>${result['Date FTard'] !== undefined ? result['Date FTard'] : ''}</td>
           </tr>
         `;
       });
