@@ -21,6 +21,9 @@
       font-style: italic;
       color: #666;
     }
+    #exeFilterContainer {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -49,12 +52,6 @@
         <label for="jalonInput" class="form-label">Jalon</label>
         <input type="text" class="form-control" id="jalonInput" placeholder="Entrez le jalon">
       </div>
-      <div class="col-md-3">
-        <label for="exeFilter" class="form-label">Filtrer par Exe</label>
-        <select class="form-select" id="exeFilter">
-          <option value="">Tous</option>
-        </select>
-      </div>
       <div class="col-md-2 d-flex align-items-end">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="filterVA">
@@ -65,6 +62,12 @@
       </div>
     </div>
     <button id="searchButton" class="btn btn-primary mt-3">Rechercher</button>
+    <div id="exeFilterContainer" class="mt-3">
+      <label for="exeFilter" class="form-label">Filtrer par Exe</label>
+      <select class="form-select" id="exeFilter">
+        <option value="">Tous</option>
+      </select>
+    </div>
     <div id="loadingMsg"></div>
     <div id="results" class="mt-4">
       <!-- Les résultats seront affichés ici -->
@@ -72,13 +75,12 @@
   </div>
 
   <script>
-    let allData = [];
+    let filteredData = [];
 
     document.getElementById('searchButton').addEventListener('click', function() {
       const lot = document.getElementById('lotInput').value;
       const jalon = document.getElementById('jalonInput').value;
       const filterVA = document.getElementById('filterVA').checked;
-      const exeFilter = document.getElementById('exeFilter').value;
 
       const loadingMsg = document.getElementById('loadingMsg');
       loadingMsg.textContent = "Chargement en cours...";
@@ -86,9 +88,22 @@
       fetch('details_jalons.json')
         .then(response => response.json())
         .then(data => {
-          allData = data;
-          populateExeFilter(data);
-          let results = filterData(data, lot, jalon, filterVA, exeFilter);
+          let results = data;
+
+          if (lot) {
+            results = results.filter(item => item.Ident == lot);
+          }
+
+          if (jalon) {
+            results = results.filter(item => item.Jalon == jalon);
+          }
+
+          if (filterVA) {
+            results = results.filter(item => item['v%A'] < 100);
+          }
+
+          filteredData = results;
+          populateExeFilter(results);
           displayResults(results);
           loadingMsg.textContent = "";
         })
@@ -98,9 +113,22 @@
         });
     });
 
+    document.getElementById('exeFilter').addEventListener('change', function() {
+      const exeFilter = document.getElementById('exeFilter').value;
+      let results = filteredData;
+
+      if (exeFilter) {
+        results = results.filter(item => item.Exe == exeFilter);
+      }
+
+      displayResults(results);
+    });
+
     function populateExeFilter(data) {
+      const exeFilterContainer = document.getElementById('exeFilterContainer');
       const exeFilter = document.getElementById('exeFilter');
       const uniqueExeValues = [...new Set(data.map(item => item.Exe))].filter(Boolean);
+
       exeFilter.innerHTML = '<option value="">Tous</option>';
       uniqueExeValues.forEach(value => {
         const option = document.createElement('option');
@@ -108,28 +136,12 @@
         option.textContent = value;
         exeFilter.appendChild(option);
       });
-    }
 
-    function filterData(data, lot, jalon, filterVA, exeFilter) {
-      let results = data;
-
-      if (lot) {
-        results = results.filter(item => item.Ident == lot);
+      if (uniqueExeValues.length > 0) {
+        exeFilterContainer.style.display = 'block';
+      } else {
+        exeFilterContainer.style.display = 'none';
       }
-
-      if (jalon) {
-        results = results.filter(item => item.Jalon == jalon);
-      }
-
-      if (filterVA) {
-        results = results.filter(item => item['v%A'] < 100);
-      }
-
-      if (exeFilter) {
-        results = results.filter(item => item.Exe == exeFilter);
-      }
-
-      return results.sort((a, b) => a.Exe.localeCompare(b.Exe));
     }
 
     function displayResults(results) {
