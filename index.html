@@ -1,1 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Rechercher par Lot et Jalon</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+    }
+    #results {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">📊 Mon Site</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link active" href="index.html">🏠 Accueil</a></li>
+          <li class="nav-item"><a class="nav-link" href="generate.html">🛠 Générer JSON</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    <h1>Rechercher par Lot et Jalon</h1>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label for="lotInput" class="form-label">Numéro de Lot</label>
+        <input type="text" class="form-control" id="lotInput" placeholder="Entrez le numéro de lot">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="jalonInput" class="form-label">Jalon</label>
+        <input type="text" class="form-control" id="jalonInput" placeholder="Entrez le jalon">
+      </div>
+    </div>
+    <button id="searchButton" class="btn btn-primary">Rechercher</button>
+    <button id="showAllButton" class="btn btn-secondary">Afficher Tout</button>
+    <div id="results" class="mt-4">
+      <!-- Les résultats seront affichés ici -->
+    </div>
+  </div>
 
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      fetchAndDisplayData();
+    });
+
+    document.getElementById('searchButton').addEventListener('click', function() {
+      const lotNumber = document.getElementById('lotInput').value;
+      const jalon = document.getElementById('jalonInput').value;
+
+      fetch('details_jalons.json')
+        .then(response => response.json())
+        .then(data => {
+          let results = data;
+
+          if (lotNumber) {
+            results = results.filter(item => item.Jalon === lotNumber);
+          }
+
+          if (jalon) {
+            results = results.filter(item => item.Ident === jalon);
+          }
+
+          displayResults(results);
+        })
+        .catch(error => console.error('Erreur lors du chargement du fichier JSON:', error));
+    });
+
+    document.getElementById('showAllButton').addEventListener('click', function() {
+      fetchAndDisplayData();
+    });
+
+    function fetchAndDisplayData() {
+      fetch('details_jalons.json')
+        .then(response => response.json())
+        .then(data => {
+          displayResults(data);
+        })
+        .catch(error => console.error('Erreur lors du chargement du fichier JSON:', error));
+    }
+
+    function displayResults(results) {
+      const resultsDiv = document.getElementById('results');
+      if (results.length === 0) {
+        resultsDiv.innerHTML = '<p>Aucun résultat trouvé.</p>';
+        return;
+      }
+
+      let tableHTML = `
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Jalon</th>
+              <th>Ident</th>
+              <th>Budget</th>
+              <th>Exe</th>
+              <th>Libellé Activité</th>
+              <th>Réseau/OT</th>
+              <th>RRO</th>
+              <th>TR</th>
+              <th>v%A</th>
+              <th>Date FTard</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      results.forEach(result => {
+        tableHTML += `
+          <tr>
+            <td>${result.Jalon}</td>
+            <td>${result.Ident}</td>
+            <td>${result.Budget}</td>
+            <td>${result.Exe}</td>
+            <td>${result['Libellé Activité']}</td>
+            <td>${result['Réseau/OT']}</td>
+            <td>${result.RRO}</td>
+            <td>${result.TR}</td>
+            <td>${result['v%A']}</td>
+            <td>${result['Date FTard']}</td>
+          </tr>
+        `;
+      });
+
+      tableHTML += `</tbody></table>`;
+      resultsDiv.innerHTML = tableHTML;
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
