@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>🛠 Générer JSON</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #loadingMsg {
+      font-style: italic;
+      color: #666;
+    }
+  </style>
+</head>
+<body class="p-4 bg-light">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">📊 Mon Site</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link" href="index.html">🏠 Accueil</a></li>
+          <li class="nav-item"><a class="nav-link active" href="generate.html">🛠 Générer JSON</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    <h1>🛠 Générer un fichier JSON depuis un fichier Excel</h1>
+    <p>Cette page vous permet de créer un fichier JSON à partir de la feuille <code>Détails Jalons</code> de votre fichier Excel.</p>
+    <input type="file" id="fileInput" accept=".xlsx, .xlsb" class="form-control mb-3">
+    <div id="message"></div>
+    <div id="loadingMsg"></div>
+    <div id="downloadLinks" class="mt-4"></div>
+  </div>
+  <script>
+    const columnsOfInterest = [
+      "Lot Jalon", "Ident", "Budget", "Exe", "Libellé Activité",
+      "Réseau/OT", "RRO", "TR", "v%A", "Date FTard"
+    ];
+
+    document.getElementById("fileInput").addEventListener("change", handleFile);
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      showMsg("", "info");
+      document.getElementById("loadingMsg").textContent = "⏳ Patientez, chargement du fichier en cours...";
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const buffer = new Uint8Array(evt.target.result);
+          parseAndGenerateJSON(buffer);
+        } catch (err) {
+          console.error(err);
+          showMsg("❌ Erreur lecture fichier local : " + err.message, "danger");
+        } finally {
+          document.getElementById("loadingMsg").textContent = "";
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function parseAndGenerateJSON(arrayBuf) {
+      try {
+        const workbook = XLSX.read(arrayBuf, { type: "array" });
+        const sheetName = workbook.SheetNames.find(n => n.includes("Détails Jalons"));
+        if (!sheetName) {
+          showMsg("❌ Feuille 'Détails Jalons' non trouvée", "danger");
+          return;
+        }
+
+        const sheet = workbook.Sheets[sheetName];
+        const jsonRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        const minimalData = jsonRaw.map(row => {
+          const result = {};
+          columnsOfInterest.forEach(col => {
+            result[col] = row[col] || "";
+          });
+          return result;
+        });
+
+        const blob = new Blob([JSON.stringify(minimalData, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const fileName = `details_jalons.json`;
+
+        const linksContainer = document.getElementById("downloadLinks");
+        linksContainer.innerHTML = "";
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.className = "btn btn-primary me-2 mb-2";
+        link.textContent = `Télécharger ${fileName}`;
+        linksContainer.appendChild(link);
+
+        showMsg(`✅ ${jsonRaw.length} lignes chargées. Fichier JSON généré.`, "success");
+      } catch (err) {
+        console.error(err);
+        showMsg("❌ Erreur lors du parse du fichier : " + err.message, "danger");
+      }
+    }
+
+    function showMsg(msg, type = "info") {
+      document.getElementById("message").innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
