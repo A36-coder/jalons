@@ -37,11 +37,18 @@
   </div>
   <script>
     const columnsOfInterest = [
-      "Lot Jalon", "Ident", "Budget", "Exe", "Libellé Activité",
+      "Jalon", "Ident", "Budget", "Exe", "Libellé Activité",
       "Réseau/OT", "RRO", "TR", "v%A", "Date FTard"
     ];
 
     document.getElementById("fileInput").addEventListener("change", handleFile);
+
+    function excelDateToJSDate(serial) {
+      const utcDays = Math.floor(serial - 25569);
+      const utcValue = utcDays * 86400;
+      const date = new Date(utcValue * 1000);
+      return date.toLocaleDateString("fr-FR"); // Format the date as DD/MM/YYYY
+    }
 
     function handleFile(e) {
       const file = e.target.files[0];
@@ -83,7 +90,7 @@
 
         const sheet = workbook.Sheets[sheetName];
         showMsg("Conversion de la feuille en JSON.", "info");
-        const jsonRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" , range: 9 });
+        const jsonRaw = XLSX.utils.sheet_to_json(sheet, { defval: "", range: 9 });
         showMsg("Feuille convertie en JSON avec succès.", "success");
 
         console.log("Données lues :", jsonRaw);
@@ -92,12 +99,16 @@
         const minimalData = jsonRaw.map(row => {
           const result = {};
           columnsOfInterest.forEach(col => {
-            result[col] = row[col] || "";
+            if (col === "Date FTard" && row[col]) {
+              result[col] = excelDateToJSDate(row[col]);
+            } else {
+              result[col] = row[col] || "";
+            }
           });
           return result;
         });
-        showMsg("Données filtrées avec succès.", "success");
 
+        showMsg("Données filtrées avec succès.", "success");
         console.log("Données filtrées :", minimalData);
 
         showMsg("Génération du fichier JSON.", "info");
@@ -122,7 +133,7 @@
     }
 
     function showMsg(msg, type = "info") {
-      console.log(msg); // Log dans la console pour le débogage
+      console.log(msg);
       document.getElementById("message").innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
     }
   </script>
