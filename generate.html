@@ -45,18 +45,22 @@
 
     function handleFile(e) {
       const file = e.target.files[0];
-      if (!file) return;
-      showMsg("", "info");
-      document.getElementById("loadingMsg").textContent = "⏳ Patientez, chargement du fichier en cours...";
+      if (!file) {
+        showMsg("Aucun fichier sélectionné.", "warning");
+        return;
+      }
+      showMsg("Fichier sélectionné : " + file.name, "info");
+      document.getElementById("loadingMsg").textContent = "⏳ Chargement du fichier en cours...";
 
       const reader = new FileReader();
       reader.onload = function(evt) {
         try {
+          showMsg("Fichier chargé avec succès.", "success");
           const buffer = new Uint8Array(evt.target.result);
           parseAndGenerateJSON(buffer);
         } catch (err) {
           console.error(err);
-          showMsg("❌ Erreur lecture fichier local : " + err.message, "danger");
+          showMsg("❌ Erreur lors de la lecture du fichier : " + err.message, "danger");
         } finally {
           document.getElementById("loadingMsg").textContent = "";
         }
@@ -66,18 +70,25 @@
 
     function parseAndGenerateJSON(arrayBuf) {
       try {
+        showMsg("Début du traitement du fichier Excel.", "info");
         const workbook = XLSX.read(arrayBuf, { type: "array" });
+        showMsg("Fichier Excel lu avec succès.", "success");
+
         const sheetName = workbook.SheetNames.find(n => n.includes("Détails Jalons"));
         if (!sheetName) {
           showMsg("❌ Feuille 'Détails Jalons' non trouvée", "danger");
           return;
         }
+        showMsg("Feuille 'Détails Jalons' trouvée.", "success");
 
         const sheet = workbook.Sheets[sheetName];
+        showMsg("Conversion de la feuille en JSON.", "info");
         const jsonRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        showMsg("Feuille convertie en JSON avec succès.", "success");
 
-        console.log("Données lues :", jsonRaw); // Log pour vérifier les données lues
+        console.log("Données lues :", jsonRaw);
 
+        showMsg("Filtrage des données selon les colonnes d'intérêt.", "info");
         const minimalData = jsonRaw.map(row => {
           const result = {};
           columnsOfInterest.forEach(col => {
@@ -85,9 +96,11 @@
           });
           return result;
         });
+        showMsg("Données filtrées avec succès.", "success");
 
-        console.log("Données filtrées :", minimalData); // Log pour vérifier les données filtrées
+        console.log("Données filtrées :", minimalData);
 
+        showMsg("Génération du fichier JSON.", "info");
         const blob = new Blob([JSON.stringify(minimalData, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const fileName = `details_jalons.json`;
@@ -101,14 +114,15 @@
         link.textContent = `Télécharger ${fileName}`;
         linksContainer.appendChild(link);
 
-        showMsg(`✅ ${jsonRaw.length} lignes chargées. Fichier JSON généré.`, "success");
+        showMsg(`✅ ${jsonRaw.length} lignes traitées. Fichier JSON généré avec succès.`, "success");
       } catch (err) {
         console.error(err);
-        showMsg("❌ Erreur lors du parse du fichier : " + err.message, "danger");
+        showMsg("❌ Erreur lors du traitement du fichier : " + err.message, "danger");
       }
     }
 
     function showMsg(msg, type = "info") {
+      console.log(msg); // Log dans la console pour le débogage
       document.getElementById("message").innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
     }
   </script>
