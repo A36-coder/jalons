@@ -76,6 +76,8 @@
         const sheet = workbook.Sheets[sheetName];
         const jsonRaw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
+        console.log("Données lues :", jsonRaw); // Log pour vérifier les données lues
+
         const minimalData = jsonRaw.map(row => {
           const result = {};
           columnsOfInterest.forEach(col => {
@@ -83,6 +85,8 @@
           });
           return result;
         });
+
+        console.log("Données filtrées :", minimalData); // Log pour vérifier les données filtrées
 
         const blob = new Blob([JSON.stringify(minimalData, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
